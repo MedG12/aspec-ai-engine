@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+sqlalchemy
+pymysql
+cryptography
+pandas
+scikit-learn
+keras
+tensorflow
+langchain
+apscheduler
+python-dotenv
