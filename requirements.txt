@@ -12,3 +12,5 @@ tensorflow
 langchain
 apscheduler
 python-dotenv
+chromadb
+sentence-transformers

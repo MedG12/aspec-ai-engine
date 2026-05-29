@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     MYSQL_PORT: str = "3306"
     MYSQL_DB: str = "aspec_db"
     
+    # ChromaDB Settings
+    CHROMA_DB_PATH: str = "chroma_db"
+    CHROMA_COLLECTION_NAME: str = "aspec_full_context_v5"
+    
     @property
     def DATABASE_URL(self) -> str:
         # Returns SQLAlchemy connection string for MySQL using PyMySQL

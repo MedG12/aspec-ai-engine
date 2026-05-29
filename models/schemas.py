@@ -1,4 +1,6 @@
 from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import date
 
 class AssetInput(BaseModel):
     tipe: str = Field(..., alias="Tipe")
@@ -20,3 +22,22 @@ class RULPredictionResponse(BaseModel):
     
 class ChatRequest(BaseModel):
     message: str
+
+class InsertResponse(BaseModel):
+    success: bool
+    mode: str
+    indexed: int
+    total_in_db: int
+    message: str
+
+class MaintenanceLogItem(BaseModel):
+    ticket_id: int
+    asset_id: int
+    asset_type: str
+    issue_type: Optional[str] = None
+    root_cause: Optional[str] = None
+    spare_parts_used: Optional[str] = None
+    repair_cost: Optional[int] = None
+
+class BatchInsertRequest(BaseModel):
+    records: List[MaintenanceLogItem]

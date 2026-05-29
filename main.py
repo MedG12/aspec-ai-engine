@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from contextlib import asynccontextmanager
 
-from api.routes import predict, chat
+from api.routes import predict, chat, insert
 from services.background import start_scheduler, stop_scheduler
 
 @asynccontextmanager
@@ -35,9 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(predict.router, prefix="/api", tags=["Predict"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
+app.include_router(insert.router, prefix="/api", tags=["Vector DB"])
 
 @app.get("/")
 def read_root():
