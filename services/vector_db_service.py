@@ -1,5 +1,6 @@
 import os
 import time
+from unittest import result
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 import chromadb
@@ -8,6 +9,9 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 
 from core.config import settings
 from models.schemas import BatchInsertRequest
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.engine import CursorResult # Import tipe datanya
+from typing import cast #
 
 # --- Constants ---
 SBERT_MODEL_PATH = os.path.join("ml_models", "SBERT Model")
@@ -94,7 +98,7 @@ def batch_insert_and_embed(db: Session, request: BatchInsertRequest) -> dict:
     start_time = time.time()
     for i in range(0, total_docs, BATCH_SIZE):
         end_idx = min(i + BATCH_SIZE, total_docs)
-        collection.add(
+        collection.upsert(
             documents=documents[i:end_idx],
             metadatas=metadatas[i:end_idx],
             ids=ids[i:end_idx]
@@ -105,12 +109,30 @@ def batch_insert_and_embed(db: Session, request: BatchInsertRequest) -> dict:
 
     # 2. Update MySQL is_embedded = TRUE
     if inserted_ids:
-        # Gunakan list comprehension / parsing string dengan aman untuk list IDs integer
-        id_list_str = ",".join(map(str, inserted_ids))
-        update_query = text(f"UPDATE maintenance_logs SET is_embedded = TRUE WHERE ticket_id IN ({id_list_str})")
-        db.execute(update_query)
-        db.commit()
+            id_list_str = ",".join(map(str, inserted_ids))
+            update_query = text(f"UPDATE maintenance_logs SET is_embedded = TRUE WHERE ticket_id IN ({id_list_str})")
+            
+            try:
+                # 1. Eksekusi query
+                raw_result = db.execute(update_query)
+                
+                # 2. Beri tahu IDE (Type Checker) bahwa ini adalah CursorResult
+                execute_result = cast(CursorResult, raw_result)
+                
+                # Sekarang IDE tidak akan protes soal .rowcount
+                if execute_result.rowcount == 0:
+                    print(f"[MySQL] Peringatan: Tidak ada data yang di-update. Ticket ID {inserted_ids} tidak ditemukan.")
+                else:
+                    print(f"[MySQL] Sukses: Berhasil meng-update {execute_result.rowcount} baris data.")
+                
+                db.commit()
 
+            except SQLAlchemyError as e:
+                db.rollback()
+                print(f"[MySQL] Error gagal melakukan update: {str(e)}")
+            except Exception as e:
+                print(f"[Sistem] Terjadi kesalahan tak terduga: {str(e)}")
+        
     final_count = collection.count()
     return {
         "mode": "batch_insert",

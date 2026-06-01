@@ -4,15 +4,19 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "ASPEC AI Engine"
     
     # Database Settings
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
-    MYSQL_SERVER: str = "localhost"
-    MYSQL_PORT: str = "3306"
-    MYSQL_DB: str = "aspec_db"
+    MYSQL_USER: str
+    MYSQL_PASSWORD: str
+    MYSQL_SERVER: str
+    MYSQL_PORT: str
+    MYSQL_DB: str
     
     # ChromaDB Settings
-    CHROMA_DB_PATH: str = "chroma_db"
-    CHROMA_COLLECTION_NAME: str = "aspec_full_context_v5"
+    CHROMA_DB_PATH: str
+    CHROMA_COLLECTION_NAME: str
+    
+    # Groq Settings
+    GROQ_API_KEY: str
+    GROQ_MODEL: str
     
     @property
     def DATABASE_URL(self) -> str:

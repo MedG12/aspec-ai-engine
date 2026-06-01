@@ -54,8 +54,10 @@ def run_clustering_job(db: Session):
         embeddings_filtered = embeddings[indices]
         
         total_data = len(df_filtered)
-        if total_data < 2:
-            logger.info(f"Asset Type '{asset_type}' skip clustering (Data < 2).")
+        # KMeans membutuhkan n_samples >= n_clusters. Karena min_k default adalah 4,
+        # kita butuh minimal 5 data agar pencarian range K (4 s/d total_data - 1) valid.
+        if total_data < 5:
+            logger.info(f"Asset Type '{asset_type}' skip clustering (Data < 5).")
             continue
             
         logger.info(f"Menganalisa '{asset_type}' dengan {total_data} data.")
@@ -127,16 +129,14 @@ def run_clustering_job(db: Session):
         est_cost = cost_series.mean()
         est_cost = int(est_cost) if pd.notna(est_cost) else 0
         
-        narrative = f"Berdasarkan analisis kluster dominan, masalah paling sering terjadi pada aset {asset_type} adalah '{dom_damage}' yang umumnya disebabkan oleh '{dom_cause}'. Kami merekomendasikan persiapan persediaan '{dom_spare_part}'."
-        
         # 5. Insert / Update ke nlp_clusters
         insert_query = text("""
             INSERT INTO nlp_clusters (
                 asset_type, dominant_damage, dominant_cause, dominant_spare_part,
-                estimated_cost, recommendation_narrative, last_clustered_at
+                estimated_cost, last_clustered_at
             ) VALUES (
                 :asset_type, :dominant_damage, :dominant_cause, :dominant_spare_part,
-                :estimated_cost, :recommendation_narrative, NOW()
+                :estimated_cost, NOW()
             )
         """)
         
@@ -145,8 +145,7 @@ def run_clustering_job(db: Session):
             "dominant_damage": dom_damage,
             "dominant_cause": dom_cause,
             "dominant_spare_part": dom_spare_part,
-            "estimated_cost": est_cost,
-            "recommendation_narrative": narrative
+            "estimated_cost": est_cost
         })
         
     db.commit()

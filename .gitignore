@@ -1,3 +1,8 @@
 venv/
 ml_models/
 INIT SQL.sql
+chroma_db/
+__pycache__/
+NLP.ipynb
+insert.json
+.env
