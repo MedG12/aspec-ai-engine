@@ -3,26 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
 from core.database import get_db
-from models.schemas import AssetInput, RULPredictionResponse, XGBoostRULRequest
-from services.ml_service import predict_rul, predict_xgboost_rul
+from models.schemas import XGBoostRULRequest
+from services.ml_service import predict_xgboost_rul
 
 router = APIRouter()
 
-@router.post("/predict-rul", response_model=RULPredictionResponse)
-def predict_rul_endpoint(asset_input: AssetInput, db: Session = Depends(get_db)):
-    """
-    Predict Remaining Useful Life (RUL) for an asset.
-    """
-    # Call ML service to get prediction
-    predicted_rul = predict_rul(asset_input)
-    
-    return RULPredictionResponse(
-        asset_input=asset_input,
-        predicted_rul=predicted_rul
-    )
-
-@router.post("/predict-xgboost-rul")
-def predict_xgboost_rul_endpoint(request: XGBoostRULRequest, db: Session = Depends(get_db)):
+@router.post("/predict-rul")
+def predict_rul_endpoint(request: XGBoostRULRequest, db: Session = Depends(get_db)):
     """
     Predict RUL using XGBoost model and update the database directly.
     """

@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import text
 from core.database import SessionLocal
 
-url = "http://localhost:8000/api/predict-xgboost-rul"
+url = "http://localhost:8000/api/predict-rul"
 
 def get_all_active_payloads():
     db = SessionLocal()

@@ -79,3 +79,13 @@ def predict_xgboost_rul(request: XGBoostRULRequest) -> float:
         rul_value = float(pred_scaled[0])
         
     return max(0.0, rul_value) # Prevent negative RUL
+
+def reload_xgboost_models():
+    """Reset cached models to force a fresh load on next prediction (e.g. after retrain)."""
+    global xgboost_model, xgboost_metrics, xgboost_encoder, xgboost_feature_scaler, xgboost_target_scaler
+    xgboost_model = None
+    xgboost_metrics = None
+    xgboost_encoder = None
+    xgboost_feature_scaler = None
+    xgboost_target_scaler = None
+    load_xgboost_models()
