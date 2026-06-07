@@ -125,7 +125,7 @@ def run_clustering_job(db: Session):
         dom_cause = get_mode(df_dominant['root_cause'])
         dom_spare_part = get_mode(df_dominant['spare_parts_used'])
         
-        cost_series = pd.to_numeric(df_dominant['repair_cost'], errors='coerce')
+        cost_series = pd.Series(pd.to_numeric(df_dominant['repair_cost'], errors='coerce'))
         est_cost = cost_series.mean()
         est_cost = int(est_cost) if pd.notna(est_cost) else 0
         

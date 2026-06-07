@@ -37,15 +37,15 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(predict.router, prefix="/api", tags=["Predict"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
-app.include_router(insert.router, prefix="/api", tags=["Vector DB"])
+app.include_router(insert.router, prefix="/api", tags=["Ve  ctor DB"])
 
 @app.get("/")
 def read_root():

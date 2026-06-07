@@ -14,6 +14,7 @@ def get_all_active_payloads():
         query = text("""
             SELECT 
                 a.asset_id, 
+                a.asset_name, 
                 a.asset_type, 
                 a.building, 
                 a.floor, 
@@ -47,6 +48,7 @@ def get_all_active_payloads():
                 
             payload = {
                 "asset_id": row["asset_id"],
+                "asset_name": row["asset_name"],
                 "Total komplain": row["total_komplain"],
                 "Total biaya perbaikan": float(row["total_biaya_perbaikan"]),
                 "Lokasi Lantai": row["floor"] or 1,

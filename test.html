@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Stream ASPEC</title>
+</head>
+
+<body>
+    <h2>Chatbot ASPEC Stream Test</h2>
+    <div id="chat-box"
+        style="border: 1px solid black; padding: 10px; min-height: 100px; width: 400px; white-space: pre-wrap;"></div>
+
+    <script>
+        async function testStream() {
+            const chatBox = document.getElementById('chat-box');
+
+            // Payload persis seperti yang akan dikirim Frontend
+            const payload = {
+                asset_id: 173, // Sesuaikan dengan database Anda
+                user_query: "Beri tahu saya langkah preventif untuk aset ini.",
+                chat_history: []
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Membaca stream data yang masuk
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    const chunkText = decoder.decode(value, { stream: true });
+
+                    // Memecah teks berdasarkan baris 'data: '
+                    const lines = chunkText.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.substring(6);
+                            try {
+                                const dataObj = JSON.parse(jsonStr);
+
+                                // Jika potongan token, tambahkan ke layar
+                                if (dataObj.type === "token") {
+                                    chatBox.innerHTML += dataObj.content;
+                                }
+                                // Jika selesai, Anda bisa menangkap history terbarunya di sini
+                                else if (dataObj.type === "done") {
+                                    console.log("History Terbaru:", dataObj.updated_history);
+                                    chatBox.innerHTML += "\n\n[STREAM SELESAI]";
+                                }
+                            } catch (e) {
+                                console.error("Error parse JSON line:", e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+            }
+        }
+
+        // Jalankan saat halaman dibuka
+        testStream();
+    </script>
+</body>
+
+</html>

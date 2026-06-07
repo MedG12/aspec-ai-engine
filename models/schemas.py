@@ -22,8 +22,16 @@ class RULPredictionResponse(BaseModel):
     asset_input: AssetInput
     predicted_rul: float
     
+from typing import Optional, List, Dict, Any
+
 class ChatRequest(BaseModel):
-    message: str
+    asset_id: int
+    user_query: str
+    chat_history: List[Dict[str, Any]]
+
+class ChatResponse(BaseModel):
+    answer: str
+    updated_history: List[Dict[str, Any]]
 
 class InsertResponse(BaseModel):
     success: bool
