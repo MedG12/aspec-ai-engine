@@ -149,12 +149,13 @@ def _build_system_prompt(db: Session, asset_id: int) -> str:
         logger.warning(f"Error querying ChromaDB: {e}")
         report_text = "Tidak ada riwayat insiden historis spesifik yang tercatat untuk aset ini."
         
-    # 4. Clustering context
+    # 4. Clustering context (Ambil cluster terbesar dari Run terbaru)
     query_cluster = text("""
-        SELECT cluster_id, dominant_damage, dominant_cause, dominant_spare_part, estimated_cost
-        FROM nlp_clusters
-        WHERE asset_type = :asset_type
-        ORDER BY last_clustered_at DESC, cluster_id DESC
+        SELECT c.cluster_id, c.dominant_damage, c.dominant_cause, c.dominant_spare_part, c.average_cost as estimated_cost
+        FROM nlp_clusters c
+        JOIN clustering_runs r ON c.run_id = r.run_id
+        WHERE r.asset_type = :asset_type
+        ORDER BY r.created_at DESC, c.member_count DESC
         LIMIT 1
     """)
     cluster_info = db.execute(query_cluster, {"asset_type": asset_type}).fetchone()

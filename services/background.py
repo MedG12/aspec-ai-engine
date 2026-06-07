@@ -55,6 +55,7 @@ def retrain_xgboost_weekly():
 def start_scheduler():
     # Schedule the job to run every 12 hours (misal jam 00:00 dan 12:00)
     scheduler.add_job(update_clusters_and_rul, 'cron', hour=12, minute=0)
+    # scheduler.add_job(update_clusters_and_rul, 'interval', minutes=1)
     
     # Schedule the narrative recommendation job to run every 1 hour
     scheduler.add_job(update_narrative_recommendations, 'interval', hours=1)

@@ -111,42 +111,73 @@ def run_clustering_job(db: Session):
         
         df_filtered['cluster'] = final_labels
         
-        # 4. Agregasi untuk mencari Modus dan Mean di cluster terbanyak
-        cluster_counts = df_filtered['cluster'].value_counts()
-        dominant_cluster_id = cluster_counts.idxmax()
-        
-        df_dominant = df_filtered[df_filtered['cluster'] == dominant_cluster_id]
-        
+        # 4. Insert ke clustering_runs (Sesi Run)
+        run_insert_query = text("""
+            INSERT INTO clustering_runs (asset_type, best_k, silhouette_score)
+            VALUES (:asset_type, :best_k, :silhouette_score)
+        """)
+        db.execute(run_insert_query, {
+            "asset_type": asset_type,
+            "best_k": int(best_k),
+            "silhouette_score": float(best_score)
+        })
+        run_id = db.execute(text("SELECT LAST_INSERT_ID()")).scalar()
+
+        # 5. Loop Semua Cluster (K Cluster)
         def get_mode(series):
             m = series.dropna().mode()
             return str(m.iloc[0]) if not m.empty else "Tidak Diketahui"
+
+        for i in range(best_k):
+            df_cluster = df_filtered[df_filtered['cluster'] == i]
+            if df_cluster.empty:
+                continue
+
+            # Agregasi per cluster
+            dom_damage = get_mode(df_cluster['issue_type'])
+            dom_cause = get_mode(df_cluster['root_cause'])
+            dom_spare_part = get_mode(df_cluster['spare_parts_used'])
             
-        dom_damage = get_mode(df_dominant['issue_type'])
-        dom_cause = get_mode(df_dominant['root_cause'])
-        dom_spare_part = get_mode(df_dominant['spare_parts_used'])
-        
-        cost_series = pd.Series(pd.to_numeric(df_dominant['repair_cost'], errors='coerce'))
-        est_cost = cost_series.mean()
-        est_cost = int(est_cost) if pd.notna(est_cost) else 0
-        
-        # 5. Insert / Update ke nlp_clusters
-        insert_query = text("""
-            INSERT INTO nlp_clusters (
-                asset_type, dominant_damage, dominant_cause, dominant_spare_part,
-                estimated_cost, last_clustered_at
-            ) VALUES (
-                :asset_type, :dominant_damage, :dominant_cause, :dominant_spare_part,
-                :estimated_cost, NOW()
-            )
-        """)
-        
-        db.execute(insert_query, {
-            "asset_type": asset_type,
-            "dominant_damage": dom_damage,
-            "dominant_cause": dom_cause,
-            "dominant_spare_part": dom_spare_part,
-            "estimated_cost": est_cost
-        })
-        
+            cost_series = pd.Series(pd.to_numeric(df_cluster['repair_cost'], errors='coerce'))
+            avg_cost = int(cost_series.mean()) if pd.notna(cost_series.mean()) else 0
+            member_count = len(df_cluster)
+
+            # 6. Insert ke nlp_clusters (Detail Cluster)
+            cluster_insert_query = text("""
+                INSERT INTO nlp_clusters (
+                    run_id, cluster_index, dominant_damage, dominant_cause, 
+                    dominant_spare_part, average_cost, member_count
+                ) VALUES (
+                    :run_id, :cluster_index, :dominant_damage, :dominant_cause,
+                    :dominant_spare_part, :average_cost, :member_count
+                )
+            """)
+            db.execute(cluster_insert_query, {
+                "run_id": run_id,
+                "cluster_index": i,
+                "dominant_damage": dom_damage,
+                "dominant_cause": dom_cause,
+                "dominant_spare_part": dom_spare_part,
+                "average_cost": avg_cost,
+                "member_count": member_count
+            })
+            cluster_id = db.execute(text("SELECT LAST_INSERT_ID()")).scalar()
+
+            # 7. Mapping ticket_id ke cluster_id (Batch Insert)
+            mapping_data = []
+            for _, row in df_cluster.iterrows():
+                mapping_data.append({
+                    "run_id": run_id,
+                    "ticket_id": int(row['ticket_id']),
+                    "cluster_id": cluster_id
+                })
+            
+            if mapping_data:
+                mapping_query = text("""
+                    INSERT INTO maintenance_log_clusters (run_id, ticket_id, cluster_id)
+                    VALUES (:run_id, :ticket_id, :cluster_id)
+                """)
+                db.execute(mapping_query, mapping_data)
+
     db.commit()
     logger.info("Selesai proses clustering dan agregasi untuk seluruh tipe asset.")

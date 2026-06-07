@@ -67,15 +67,14 @@ def batch_insert_and_embed(db: Session, request: BatchInsertRequest) -> dict:
     for record in request.records:
         ticket_id = record.ticket_id
         
-        # Teks embedding disesuaikan dengan permintaan (issue_type, root_cause, spare_parts_used, repair_cost)
+        # Teks embedding difokuskan pada jenis kerusakan dan penyebab agar clustering lebih akurat
+        # Kita tidak menyertakan biaya dan spare part di sini agar tidak menjadi noise saat clustering
         emb_parts = [
             f"Jenis: {record.issue_type or ''}",
-            f"Penyebab: {record.root_cause or ''}",
-            f"Biaya: {record.repair_cost or ''}",
-            f"Part: {record.spare_parts_used or ''}"
+            f"Penyebab: {record.root_cause or ''}"
         ]
-        # Skip field yang kosong
-        text_doc = " | ".join([p for p in emb_parts if not p.endswith(': ')])
+        # Skip field yang kosong untuk hasil embedding yang lebih bersih
+        text_doc = " | ".join([p for p in emb_parts if not p.strip().endswith(':')])
         
         # Build metadata untuk vector DB
         meta = {
